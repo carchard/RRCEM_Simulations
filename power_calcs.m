@@ -50,7 +50,7 @@ xy=[course_x' course_y'];
 d = diff(xy,1);
 dist_from_vertex_to_vertex = hypot(d(:,1), d(:,2));
 cumulative_dist_along_path = [0;cumsum(dist_from_vertex_to_vertex,1)];
-num_points = 100; %set the number of interpolation points
+num_points = 1000; %set the number of interpolation points
 dist_steps = linspace(0, cumulative_dist_along_path(end), num_points);
 points = interp1(cumulative_dist_along_path, xy, dist_steps);
 course_interp_X=points(:,1);
@@ -60,7 +60,7 @@ course_interp_Y=points(:,2);
 
 
 %vectorLength=num_points;
-vectorLength=2000;
+vectorLength=1500;
 
 %calculates the path distance between each point
 dist_between_steps=dist_steps(2)-dist_steps(1);
@@ -135,10 +135,11 @@ for i = 2:vectorLength
     %r_velocity(i) = sqrt(x_velocity(i).^2 + y_velocity(i).^2); %calculates magnitude of velocity vector ("true" velocity)
     
     %Calculate rolling friction force
-    %c_roll_X = 0.2+0.2*(x_velocity(i)/60.67);   % rolling fric
-    %c_roll_Y = 0.2+0.2*(y_velocity(i)/60.67);   % rolling fric
-    c_roll_X = 0.2*(x_velocity(i-1)/60.67);   % rolling fric
-    c_roll_Y = 0.2*(y_velocity(i-1)/60.67);   % rolling fric
+    c_roll_X = (x_velocity(i)>0)*0.2+0.2*(x_velocity(i)/60.67);   % rolling fric
+    c_roll_Y = (y_velocity(i)>0)*0.2+0.2*(y_velocity(i)/60.67);   % rolling fric
+    %c_roll_X = 0.2*(x_velocity(i-1)/60.67);   % rolling fric
+    %c_roll_Y = 0.2*(y_velocity(i-1)/60.67);   % rolling fric
+   
     F_roll_X = c_roll_X * mass * g;
     F_roll_Y = c_roll_Y * mass * g;  
     
