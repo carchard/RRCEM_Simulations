@@ -33,8 +33,13 @@ timestep = .1; % seconds
 
 % The course
 % -------------------------------------------------------------------
+
+%SQUARE COURSE
 course_x=[1000,-1000,-1000,+1000,1000]; 
 course_y=[1000,1000,-1000,-1000,0];
+%course_x=-1000:1000;
+%course_y=sqrt(1000^2-course_x.^2);
+
 
 %interpolation of the course data. For explantation:
     %http://blogs.mathworks.com/steve/2012/07/06/walking-along-a-path/)
@@ -45,7 +50,7 @@ xy=[course_x' course_y'];
 d = diff(xy,1);
 dist_from_vertex_to_vertex = hypot(d(:,1), d(:,2));
 cumulative_dist_along_path = [0;cumsum(dist_from_vertex_to_vertex,1)];
-num_points = 230; %set the number of interpolation points
+num_points = 100; %set the number of interpolation points
 dist_steps = linspace(0, cumulative_dist_along_path(end), num_points);
 points = interp1(cumulative_dist_along_path, xy, dist_steps);
 course_interp_X=points(:,1);
@@ -55,7 +60,7 @@ course_interp_Y=points(:,2);
 
 
 %vectorLength=num_points;
-vectorLength=2300;
+vectorLength=2000;
 
 %calculates the path distance between each point
 dist_between_steps=dist_steps(2)-dist_steps(1);
@@ -265,12 +270,16 @@ if(plot_mode==2)
 
     hold on
     
-    plot(x_pos, y_pos, 'r.')
-    
+    z=zeros(length(course_x))';
+    plot3(course_x,course_y,z,'color',([.2 .2 .6]),'linewidth',2)
+    z=zeros(length(x_pos))';
+    plot3(x_pos, y_pos,z, 'r.')
+    plot3(x_pos, y_pos, r_velocity,'c.')
     hold off
     grid on
-    ylabel('y')
-    xlabel('x')
+    zlabel('Velocity - m/s')
+    ylabel('y - m')
+    xlabel('x - m')
    
 end
 
