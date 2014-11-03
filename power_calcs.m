@@ -30,7 +30,7 @@ area = .75; %1.05; % 2.5ft wide, 4.5ft tall rhombus
 rho = 1.184; % mass density of air at 25C
 g = 9.81; % acceleration do to gravity in m/s^2
 timestep = .1; % seconds
-
+max_lateral_g = 1; % starting with 1 as a rough estimate of no camber turn
 % The course
 % -------------------------------------------------------------------
 
@@ -99,7 +99,9 @@ j=1; %initialize j
 
 %determine INITIAL theta (this is angle of current position to desired position)
 theta=atan2d((course_interp_Y(2)-y_pos(1)),(course_interp_X(2)-x_pos(1)));
-
+theta_m3 = 0;
+theta_m2 = 0;
+theta_m1 = 0;
 for i = 2:vectorLength
     
     %update time vector
@@ -110,11 +112,27 @@ for i = 2:vectorLength
     while Total_dist_traveled>=dist_between_steps*j
         j=j+1;
     end
-     theta=atan2d((course_interp_Y(j+1)-y_pos(i-1)),(course_interp_X(j+1)-x_pos(i-1)));
+     Velocity_Mag = x_velocity(i)^2 + y_velocity(i)^2;
+     look_ahead = round(1.5^(Velocity_Mag/5));
+     theta_m3 = theta_m2;
+     theta_m2 = theta_m1;
+     theta_m1 = theta;
+     theta=atan2d((course_interp_Y(j+look_ahead)-y_pos(i-1)),(course_interp_X(j+look_ahead)-x_pos(i-1)));
    end
    
-    %[v_goal_x, v_goal_y] = getGoalVelocity(); 
-    v_goal_x=100000; v_goal_y=100000;
+   % estimates the radius by treating the last four points as a wedge of
+   % a circle. By checking the portion of the circumference we have
+   % travelled, we can get a radius. From the radius we calculate, we get a
+   % maximum allowable velocity.
+   delta_theta = abs(theta_m3-theta);
+   if delta_theta>0 % Prevents dividing by 0
+       radius = ((dist_between_steps * 4)*(360/delta_theta))/(2*pi());
+   else
+       radius = 10000000000;
+   end
+   Velocity_Mag = sqrt(max_lateral_g*radius);
+   v_goal_x = Velocity_Mag*cosd(theta);
+   v_goal_y = Velocity_Mag*sind(theta);
     
     %determine whether bike has reached its goal velocity
     if (v_goal_x>x_velocity(i) && v_goal_y>y_velocity(i))
@@ -129,6 +147,8 @@ for i = 2:vectorLength
     else
        % Braking code here
        F_motor=0; %random value for code testing
+       F_motor_X = 0;
+       F_motor_Y = 0;
     end
     
     %theta = arctan(course_y(i)/course_x(i));
