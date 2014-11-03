@@ -47,25 +47,25 @@ Force_total_Y = 0;
 
 % The main loop
 % -------------------------------------------------------------------
-for i = 0:length(course_x)
-    [v_goal_x, v_goal_y] = getGoalVelocity();
-    if (v_goal_x<x_velocity & v_goal_y<y_velocity)
+%for i = 0:length(course_x)
+    %[v_goal_x, v_goal_y] = getGoalVelocity();
+    %if (v_goal_x<x_velocity & v_goal_y<y_velocity)
         % engine is on code here
-    else
+    %else
        % Braking code here 
-    end
-    Force_total_X = Force_total_X + F_drag_X + F_roll_X;
-    Force_total_Y = Force_total_Y + F_drag_Y + F_roll_Y;
+   % end
+   % Force_total_X = Force_total_X + F_drag_X + F_roll_X;
+   % Force_total_Y = Force_total_Y + F_drag_Y + F_roll_Y;
     
-    x_accel = Force_total_X * weight;
-    y_accel = Force_total_Y * weight;
+   % x_accel = Force_total_X * weight;
+   % y_accel = Force_total_Y * weight;
     
-    x_velocity = x_velocity + x_accel * timestep;
-    y_velocity = y_velocity + y_accel * timestep;
+   % x_velocity = x_velocity + x_accel * timestep;
+   % y_velocity = y_velocity + y_accel * timestep;
     
-    x_pos = x_pos + x_velocity * timestep;
-    y_pos = y_pos + y_velocity * timestep;
-end
+   % x_pos = x_pos + x_velocity * timestep;
+   % y_pos = y_pos + y_velocity * timestep;
+%end
 velocity = linspace(0,99);     % speed in m/s
 c_roll = 0.2+0.2.*(velocity./60.67);   % rolling fric
 F_roll = c_roll * weight;
