@@ -10,12 +10,12 @@
 %
 %--------------------------------------------------------------------
 clc;
-clear all;
+%clear all; %commented out because this clears all debug break points
 close all;
 
 % Plotting Parameters
 % -------------------------------------------------------------------
-plot_mode = 2;
+plot_mode = 3;
 
 % Bike Parameters
 % -------------------------------------------------------------------
@@ -35,10 +35,25 @@ max_lateral_g = 1; % starting with 1 as a rough estimate of no camber turn
 % -------------------------------------------------------------------
 
 %SQUARE COURSE
-course_x=[1000,-1000,-1000,+1000,1000]; 
-course_y=[1000,1000,-1000,-1000,0];
+%course_x=[1000,-1000,-1000,+1000,1000]; 
+%course_y=[1000,1000,-1000,-1000,0];
+
+%SEMI CIRCLE COURSE
 %course_x=-1000:1000;
 %course_y=sqrt(1000^2-course_x.^2);
+
+%STRIAGHT LINE COURSE
+course_x=-1000:1000;
+course_y=-1000:1000;
+
+%AIRFOIL COURSE
+%course_x=xlsread('mh114','A1:A68');
+%course_y=xlsread('mh114','B1:B68');
+
+%SINE WAVE COURSE
+%course_x=-1000:1000;
+%course_y=100*sin(course_x/50);
+
 
 
 %interpolation of the course data. For explantation:
@@ -55,6 +70,11 @@ dist_steps = linspace(0, cumulative_dist_along_path(end), num_points);
 points = interp1(cumulative_dist_along_path, xy, dist_steps);
 course_interp_X=points(:,1);
 course_interp_Y=points(:,2);
+
+%calculate course radiuses
+radiusTotal=getRadius(course_interp_X, course_interp_Y);
+radiusTotal(end+1)=inf; radiusTotal(end+1)=inf; %small error/bug - need to fix later
+
 
 %vectorLength=num_points;
 vectorLength=4000;
@@ -100,6 +120,8 @@ theta_m3 = 0;
 theta_m2 = 0;
 theta_m1 = 0;
 
+%initialize radius
+radius=radiusTotal(1);
 
 debugFlag1=0;
 debugFlag2=0;
@@ -115,30 +137,43 @@ for i = 2:vectorLength
     end
      Velocity_Mag = sqrt(x_velocity(i)^2 + y_velocity(i)^2);
      look_ahead = round(1.5^(Velocity_Mag/5));
-     theta_m3 = theta_m2;
-     theta_m2 = theta_m1;
-     theta_m1 = theta;
+
+     %update radius
+     radius=radiusTotal(j);
+     
      
      if(j+look_ahead > num_points) %if true, end of course reached
         break;
      end
-     theta=atan2d((course_interp_Y(j+look_ahead)-y_pos(i-1)),(course_interp_X(j+look_ahead)-x_pos(i-1)));
+     %theta=atan2d((course_interp_Y(j+look_ahead)-y_pos(i-1)),(course_interp_X(j+look_ahead)-x_pos(i-1)));
    end
+   
+%    theta_m3 = theta_m2;
+%    theta_m2 = theta_m1;
+%    theta_m1 = theta;
+    theta=atan2d((course_interp_Y(j)-y_pos(i-1)),(course_interp_X(j)-x_pos(i-1)));
+    
+
+    
+    
+    
+    
    
    % estimates the radius by treating the last four points as a wedge of
    % a circle. By checking the portion of the circumference we have
    % travelled, we can get a radius. From the radius we calculate, we get a
    % maximum allowable velocity.
-   delta_theta = abs(theta_m3-theta);
-   if delta_theta>0 % Prevents dividing by 0
-       radius = ((dist_between_steps * 4)*(360/delta_theta))/(2*pi());
-   else
-       radius = 10000000000;
-   end
+%    %delta_theta = abs(theta_m3-theta);
+%    if delta_theta>0 % Prevents dividing by 0
+%        radius = ((dist_between_steps * 4)*(360/delta_theta))/(2*pi());
+%    else
+%        radius = 10000000000;
+%    end
    Velocity_Mag = sqrt(max_lateral_g*radius);
    v_goal_x = Velocity_Mag*cosd(theta);
    v_goal_y = Velocity_Mag*sind(theta);
-    
+   v_goal(i)=sqrt( v_goal_x^2+v_goal_y^2);
+   
     %determine whether bike has reached its goal velocity
     if (abs(v_goal_x)>=abs(x_velocity(i)) && abs(v_goal_y)>=abs(y_velocity(i)))
         % engine is on code here
@@ -168,8 +203,6 @@ for i = 2:vectorLength
     %Calculate rolling friction force
     c_roll_X = (x_velocity(i)>0)*0.2+0.2*(x_velocity(i)/60.67);   % rolling fric
     c_roll_Y = (y_velocity(i)>0)*0.2+0.2*(y_velocity(i)/60.67);   % rolling fric
-    %c_roll_X = 0.2*(x_velocity(i-1)/60.67);   % rolling fric
-    %c_roll_Y = 0.2*(y_velocity(i-1)/60.67);   % rolling fric
    
     F_roll_X = c_roll_X * mass * g;
     F_roll_Y = c_roll_Y * mass * g;  
@@ -209,6 +242,19 @@ for i = 2:vectorLength
     
     Total_dist_traveled = Total_dist_traveled + sqrt((x_pos(i)-x_pos(i-1))^2+(y_pos(i)-y_pos(i-1))^2);
 end
+
+%trim excess unused zeros off of vectors
+t=t(1:i-1);
+x_pos = x_pos(1:i-1);
+y_pos = y_pos(1:i-1);
+x_velocity = x_velocity(1:i-1);
+y_velocity = y_velocity(1:i-1);
+v_goal = v_goal(1:i-1);
+x_accel = x_accel(1:i-1);
+y_accel = y_accel(1:i-1);
+
+
+
 
 r_pos = sqrt(x_pos.^2 + y_pos.^2);
 r_velocity = sqrt(x_velocity.^2 + y_velocity.^2);
@@ -256,6 +302,7 @@ if(plot_mode==2)
     ylabel('Velocity')
     xlabel('Position - m')
     legend('m/s','mph')
+    title('r-velocity vs r-position')
     %----------------------
     figure
     set(0,'DefaultAxesFontName','Iskoola Pota1')
@@ -263,15 +310,17 @@ if(plot_mode==2)
     hold on
     plot(t,r_velocity,'color',([.2 .2 .6]),'linewidth',2)
     plot(t,r_velocity*2.23694,'color','r','linewidth',2)
+   % plot(t,v_goal,'linewidth',2)
     
 
     hold off
     grid on
     ylabel('Velocity')
     xlabel('Time - s')
-     legend('m/s','mph')
-     
-     figure
+   % legend('m/s','mph','v-goal(m/s)')
+    title('r-velocity vs time')
+    %----------------------
+    figure
     set(0,'DefaultAxesFontName','Iskoola Pota1')
 
     hold on
@@ -283,6 +332,7 @@ if(plot_mode==2)
     grid on
     ylabel('Accel - m/s^2')
     xlabel('Time - s')
+    title('r-accel vs time')
    %-----------------------------------
    
     figure
@@ -292,13 +342,30 @@ if(plot_mode==2)
     plot(course_x,course_y,'color',([.2 .2 .6]),'linewidth',2)
     plot(points(:,1), points(:,2), 'g.')
     plot(x_pos, y_pos, 'r.')
-    axis([-2000,2000,-2000,2000]); 
+    
+    turnflag=0;
+    [turnflag]= getCurvature(course_interp_X, course_interp_Y);
+    plot(course_interp_X(turnflag),course_interp_Y(turnflag),'k*')
+    
+    
+    
+    %axis([-2000,2000,-2000,2000]); 
+    axis equal
     hold off
     grid on
     ylabel('y')
     xlabel('x')
+    title('bikes actual path overlayed on course')
+    
     
     %-----------------------------------
+   
+   
+   
+end
+
+if(plot_mode==3)
+   
    
     figure
     set(0,'DefaultAxesFontName','Iskoola Pota')
@@ -315,12 +382,28 @@ if(plot_mode==2)
     zlabel('Velocity - m/s')
     ylabel('y - m')
     xlabel('x - m')
-   
+    title('Bike Velocity on Track')
+    
+    %---------------------------------
+    
+    
+    figure
+    set(0,'DefaultAxesFontName','Iskoola Pota')
+
+    hold on
+    
+    z=zeros(length(course_x))';
+    plot3(course_x,course_y,z,'color',([.2 .2 .6]),'linewidth',2)
+    z=zeros(length(x_pos))';
+    %plot3(x_pos, y_pos,z, 'r.')
+    plot3(x_pos, y_pos, v_goal,'c.')
+    hold off
+    grid on
+    zlabel('Velocity - m/s')
+    ylabel('y - m')
+    xlabel('x - m')
+    title('Goal Velocity on Track')
+    
 end
 
-if(plot_mode==3)
-   
-   
-   
-   
-end
+
